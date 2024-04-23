@@ -43,6 +43,10 @@ class OrderManagementService:
             purchase_order = {self.order.abbreviation: self.order.amount}
             for order_amount in self.noted_orders:
                 order_id, amount = order_amount.split(':')
+
+                if order_id in orders_lazy_mode:
+                    continue
+
                 self.order_ids.append(order_id)
                 total_amount += amount
 

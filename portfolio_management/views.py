@@ -10,7 +10,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def initial(self, request, *args, **kwargs):
         super(OrderViewSet, self).initial(request, *args, **kwargs)
-        self.request.data['user'] = self.request.user
+        self.request.data['client'] = self.request.user.id
 
     def get_serializer_class(self):
         serializer_class = {

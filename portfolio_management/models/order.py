@@ -8,7 +8,7 @@ from helpers.model.base import BaseModel
 
 class Order(BaseModel):
     uuid = models.UUIDField(auto_created=True)
-    user = models.ForeignKey(User, related_name='orders', on_delete=models.PROTECT)
+    client = models.ForeignKey(User, related_name='orders', on_delete=models.PROTECT)
     asset = models.ManyToManyField(Asset, related_name='orders', db_index=True)
     amount = models.FloatField()
     cost = models.FloatField()

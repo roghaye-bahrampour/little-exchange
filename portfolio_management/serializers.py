@@ -16,36 +16,42 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class BuyAssetSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(write_only=True)
 
     class Meta:
         model = Order
-        field = '__all__'
+        fields = '__all__'
         read_only_fields = (
             'uuid',
             'cost',
+            'asset',
             'status',
             'created',
             'modified'
         )
 
-    def validate(self, attrs):
+    def validate(self, data):
+        if ASSET_PRICE_MAPPING.get(data.get('name')) is None:
+            raise serializers.ValidationError('Invalid asset name.')
+
         if not Portfolio.objects.filter(
-                user=attrs.get('user'),
+                client_id=data.get('user'),
                 asset__abbreviation='DOLLAR',
-                amount__gte=attrs.get('amount')*ASSET_PRICE_MAPPING.get()).exists():
+                amount__gte=data.get('amount')*ASSET_PRICE_MAPPING.get(data.get('name'))).exists():
             raise serializers.ValidationError('Not enough amount of asset')
-        return attrs
+
+        return data
 
     def create(self, validated_data):
 
         with transaction.atomic():
             product = validated_data.get('asset')
             Portfolio.objects.filter(
-                user=validated_data.get('user'),
+                client_id=validated_data.get('user'),
                 asset=product,
             ).update(F('amount')-validated_data.get('amount'))
             order = Order.objects.create(
-                client=validated_data.get('user'),
+                client_id=validated_data.get('user'),
                 asset__abbreviation=product,
                 cost=validated_data.get('amount')*ASSET_PRICE_MAPPING.get(product),
                 amount=validated_data.get('amount'),

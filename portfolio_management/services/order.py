@@ -20,28 +20,43 @@ class OrderManagementService:
         self.order_ids = [order.uuid]
         self.market_client = ExchangeClientFactory.get_client(self.order.exchange)
 
+    @property
+    def order_is_getting_executed(self) -> bool:
+        return cache.get(cache.get(self.PENDING_BUY_ORDERS_KEY))
+
     def _queue_order(self):
         noted_order = f'{self.order.uuid}:{self.order.amount},'
         cache.append(self.PENDING_BUY_ORDERS_KEY, noted_order)
 
     def _extract_queued_orders(self) -> dict:
-        self.noted_orders = cache.get(self.PENDING_BUY_ORDERS_KEY).split(',')[-1]
-        total_amount = self.order.amount
+        orders_lazy_mode = cache.get(self.PENDING_BUY_ORDERS_KEY)
 
-        purchase_order = {self.order.abbreviation: self.order.amount}
-        for order_amount in self.noted_orders:
-            order_id, amount = order_amount.split(':')
-            self.order_ids.append(order_id)
-            total_amount += amount
-
-        if total_amount >= settings.MINIMUM_ORDER_IN_DOLLARS:
-            orders = Order.objects.filter(uuid__in=self.order_ids).select_related('asset')
-            for order in orders:
-                purchase_order[order.asset.abbreviation] = purchase_order.get(order.asset.abbreviation, 0) + 23
-
-            return purchase_order
+        if self.order_is_getting_executed:
+            return {}
         else:
-            self._queue_order()
+            cache.set(orders_lazy_mode, "executing")
+
+        try:
+            self.noted_orders = orders_lazy_mode.split(',')[-1]
+            total_amount = self.order.amount
+
+            purchase_order = {self.order.abbreviation: self.order.amount}
+            for order_amount in self.noted_orders:
+                order_id, amount = order_amount.split(':')
+                self.order_ids.append(order_id)
+                total_amount += amount
+
+            if total_amount >= settings.MINIMUM_ORDER_IN_DOLLARS:
+                orders = Order.objects.filter(uuid__in=self.order_ids).select_related('asset')
+                for order in orders:
+                    purchase_order[order.asset.abbreviation] = purchase_order.get(order.asset.abbreviation, 0) + 23
+
+                return purchase_order
+            else:
+                self._queue_order()
+
+        except Exception as e:
+            cache.delete(orders_lazy_mode)
 
         return {}
 

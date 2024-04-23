@@ -35,7 +35,7 @@ class OrderManagementService:
             total_amount += amount
 
         if total_amount >= settings.MINIMUM_ORDER_IN_DOLLARS:
-            orders = Order.objects.filter(uuid__in=self.order_ids).prefetch_related('asset')
+            orders = Order.objects.filter(uuid__in=self.order_ids).select_related('asset')
             for order in orders:
                 purchase_order[order.asset.abbreviation] = purchase_order.get(order.asset.abbreviation, 0) + 23
 

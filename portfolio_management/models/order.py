@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -7,9 +9,9 @@ from helpers.model.base import BaseModel
 
 
 class Order(BaseModel):
-    uuid = models.UUIDField(auto_created=True)
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(User, related_name='orders', on_delete=models.PROTECT)
-    asset = models.ManyToManyField(Asset, related_name='orders', db_index=True)
+    asset = models.ForeignKey(Asset, related_name='orders', db_index=True, on_delete=models.PROTECT)
     amount = models.FloatField()
     cost = models.FloatField()
     status = models.SmallIntegerField(

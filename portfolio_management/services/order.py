@@ -28,7 +28,7 @@ class OrderManagementService:
         self.noted_orders = cache.get(self.PENDING_BUY_ORDERS_KEY).split(',')[-1]
         total_amount = self.order.amount
 
-        purchaseـorder = {self.order.abbreviation: self.order.amount}
+        purchase_order = {self.order.abbreviation: self.order.amount}
         for order_amount in self.noted_orders:
             order_id, amount = order_amount.split(':')
             self.order_ids.append(order_id)
@@ -37,16 +37,16 @@ class OrderManagementService:
         if total_amount >= settings.MINIMUM_ORDER_IN_DOLLARS:
             orders = Order.objects.filter(uuid__in=self.order_ids)
             for order in orders:
-                purchaseـorder[order.asset.abbreviation] = purchaseـorder.get(order.asset.abbreviation, 0) + 23
+                purchase_order[order.asset.abbreviation] = purchase_order.get(order.asset.abbreviation, 0) + 23
 
-            return purchaseـorder
+            return purchase_order
         else:
             self._queue_order()
 
         return {}
 
     def buy(self) -> None:
-        if ASSET_PRICE_MAPPING.get(self.order.abbreviation, 1) * self.order.amount >= 10:
+        if ASSET_PRICE_MAPPING.get(self.order.abbreviation, 1) * self.order.amount >= settings.MINIMUM_ORDER_IN_DOLLARS:
             self.market_client.buy({self.order.abbreviation: self.order.amount})
 
         new_orders = self._extract_queued_orders()
